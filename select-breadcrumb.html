@@ -12,6 +12,9 @@ if (typeof Object.create !== 'function') {
 }
 
 window.MBO = {}; // global namespace
+
+// Some library stuff, created mostly for fun
+
 // Call @fun@ with @element@ and @i@
 //
 // Ex.
@@ -84,48 +87,91 @@ MBO.reduce = function reduce(collection, initial, fun) {
 };
 
 
-MBO.breadcrumb = { // namespace for project
-    mapOptions : function(optionsList, prefix) {
-        var prefixRx, result, depth;
-        prefixRx = new RegExp("^(?:" + prefix + ")*");
-        result = MBO.map(optionsList, function(item) {
-            return {
-                depth: (prefixRx.exec(item.text)[0].length / prefix.length),
-                value: item.value,
-                text: item.text.replace(prefixRx, "")
-            };
-        });
-        return result;
+MBO.BREADCRUMB = { // namespace for project
+    DAG : {
+        mapOptions : function(optionsList, prefix) {
+            var prefixRx, result, depth;
+            prefixRx = new RegExp("^(?:" + prefix + ")*");
+            result = MBO.map(optionsList, function(item) {
+                return {
+                    depth: (prefixRx.exec(item.text)[0].length / prefix.length),
+                    value: item.value,
+                    text: item.text.replace(prefixRx, "")
+                };
+            });
+            return result;
+        },
+        reduceToDag : function(items) {
+            var stack, dag;
+            stack = [];
+            dag = {};
+            dag[""] = {item: {depth: -1}, childIds: []}; // root value
+            stack.push(""); // guard value, poining to root with negative depth
+            MBO.each(items, function(item) {
+                if (item.value.length > 0) { // skip empty value ("")
+                    dag[item.value] = {item: item, childIds: []};
+                    while (stack.length > 0 &&
+                        dag[ stack[ stack.length-1 ] ].item.depth >= item.depth) {
+                        stack.pop();
+                    }
+                    if (stack.length > 0) {
+                        dag[ stack[ stack.length-1 ] ].childIds.push(item.value);
+                    }
+                    stack.push(item.value);
+                }
+            });
+            return dag;
+        },
+        getDag : function(optionsList, prefix) {
+            return this.reduceToDag(this.mapOptions(optionsList, prefix));
+        }
     },
-    reduceToDag : function(items) {
-        var stack, dag;
-        stack = [];
-        dag = {};
-        dag[""] = {item: {depth: -1}, child_ids: []}; // root value
-        stack.push(""); // guard value, poining to root with negative depth
-        MBO.each(items, function(item) {
-            if (item.value.length > 0) { // skip empty value ("")
-                dag[item.value] = {item: item, child_ids: []};
-                while (stack.length > 0 &&
-                    dag[ stack[ stack.length-1 ] ].item.depth >= item.depth) {
-                    stack.pop();
+    LIST : {
+        listPrototype : {
+            init : function(dag, onSelect) { // only for head!!!
+                this.dag = dag;
+                this.onSelect = onSelect;
+                this.value = "";
+                this.childIds = dag[""].childIds;
+                this.selected = null;
+                return this;
+            },
+            select : function(selectedValue) { // select value (not check if actual from childIds!) and create new selected
+                var newSelected;
+                if (!this.onSelect || this.onSelect(this, selectedValue) !== false) { // call onSelect and stop if it returns false
+                    if (selectedValue !== undefined) {
+                        newSelected = Object.create(this);
+                        // I love JS more with every new feature I learn
+                        // no need to reasign this.dag to new object or anything, just use prototype
+                        // TODO: check performance for dag lookup, but I think proto chain will be small enough
+                        newSelected.value = selectedValue;
+                        newSelected.childIds = this.dag[selectedValue].childIds;
+                        newSelected.selected = null;
+                        this.selected = newSelected;
+                        return this.selected;
+                    } else {
+                        this.selected = null;
+                        return this;
+                    }
                 }
-                if (stack.length > 0) {
-                    dag[ stack[ stack.length-1 ] ].child_ids.push(item.value);
-                }
-                stack.push(item.value);
             }
-        });
-        return dag;
+        }
     },
     getDag : function(rootElement, prefix) {
-        return this.reduceToDag(this.mapOptions($(rootElement).find("option"), prefix));
+        var dag = MBO.BREADCRUMB.DAG.getDag($(rootElement).find("option"), prefix);
+        return dag;
+    },
+    getList : function(rootElement, prefix) {
+        var dag = this.getDag(rootElement, prefix);
+        var list = Object.create(MBO.BREADCRUMB.LIST.listPrototype);
+        list.init(dag);
+        return list;
     }
 };
 
 jQuery(function($) {
     // autorun
-    MBO.breadcrumb.getDag($("select"), "-");
+    // MBO.breadcrumb.getDag($("select"), "-");
 });
         </script>
         <style>
