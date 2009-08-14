@@ -155,6 +155,9 @@ MBO.BREADCRUMB = { // namespace for project
                     }
                 }
             }
+        },
+        create : function(dag, onSelect) {
+            return Object.create(this.listPrototype).init(dag, onSelect);
         }
     },
     getDag : function(rootElement, prefix) {
@@ -163,8 +166,7 @@ MBO.BREADCRUMB = { // namespace for project
     },
     getList : function(rootElement, prefix) {
         var dag = this.getDag(rootElement, prefix);
-        var list = Object.create(MBO.BREADCRUMB.LIST.listPrototype);
-        list.init(dag);
+        var list = MBO.BREADCRUMB.LIST.create(dag, function(target, selected) { alert("target=" + target.value + ";\nselectedValue=" + selected + ";")});
         return list;
     }
 };
