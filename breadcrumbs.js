@@ -1,3 +1,14 @@
+/**
+ * File:        breadcrumbs.js
+ * Description: 
+ * Author:      Mirosław Boruta <boruta.miroslaw gmail.com>
+ * Licence:     This program is free software. It comes without any warranty,  
+ *              to the extent permitted by applicable law. You can redistribute
+ *              it and/or modify it under the terms of the Do What The Fuck You
+ *              Want To Public License, Version 2, as published by Sam Hocevar.
+ *              See http://sam.zoy.org/wtfpl/COPYING for more details.         
+ */
+
 if (typeof Object.create !== 'function') {
     Object.create = function (o) {
         function F() {}
@@ -128,34 +139,31 @@ MBO.BREADCRUMB = { // namespace for project
         listPrototype : {
             init : function(dag, onSelect) { // only for head!!!
                 this.dag = dag;
-                this.onSelect = onSelect;
+                this.onSelect = onSelect || function(){};
                 this.value = "";
                 this.childIds = dag[""].childIds;
                 this.selected = null;
                 return this;
             },
+            newSelected: function(selectedValue) {
+                var selected = Object.create(this);
+                selected.value = selectedValue;
+                selected.childIds = this.dag[selectedValue].childIds;
+                selected.selected = null;
+                selected.parent = this;
+                return selected;
+            },
             select : function(selectedValue) { // select value (not check if actual from childIds!) and create new selected
-                var newSelected;
-                if (selectedValue !== undefined) {
-                    if (!this.onSelect || this.onSelect(this, selectedValue) !== false) { // call onSelect and stop if it returns false
-                        newSelected = Object.create(this);
-                        // I love JS more with every new feature I learn
-                        // no need to reasign this.dag to new object or anything, just use prototype
-                        // TODO: check performance for dag lookup, but I think proto chain will be small enough
-                        newSelected.value = selectedValue;
-                        newSelected.childIds = this.dag[selectedValue].childIds;
-                        newSelected.selected = null;
-                        newSelected.parent = this;
-                        this.selected = newSelected;
-                        return this.selected;
-                    }
+                if (selectedValue !== undefined && selectedValue !== "") {
+                    this.selected = this.newSelected(selectedValue);
+                    this.onSelect(this, selectedValue);
                 } else {
+                    this.selected = null;
                     if (this.parent) {
                         this.parent.select(this.value);
                     } else {
-                        this.selected = null;
+                        this.onSelect(this, selectedValue);
                     }
-                    return this;
                 }
             }
         },

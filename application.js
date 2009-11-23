@@ -1,16 +1,34 @@
+/**
+ * File:        application.js
+ * Description:
+ * Author:      Mirosław Boruta <boruta.miroslaw gmail.com>
+ * Licence:     This program is free software. It comes without any warranty,  
+ *              to the extent permitted by applicable law. You can redistribute
+ *              it and/or modify it under the terms of the Do What The Fuck You
+ *              Want To Public License, Version 2, as published by Sam Hocevar.
+ *              See http://sam.zoy.org/wtfpl/COPYING for more details.         
+ * Dependency:  jQuery global object
+ */
+
+// quick fix for Opera not having console.log() function
 if (!window.console) {
-    window.console = {log: opera.postError};
+    window.console = {log: (opera ? opera.postError : alert)};
 }
 (function($){
     var log = {
         init: function (rootEl) {
             var that = this;
             this.preEl = $("<pre/>").appendTo(rootEl);
-            $("<button/>").appendTo(rootEl).text("Clear").bind("click", function(){that.preEl.html("")});
+            this.preEl.clear = function() { this.html(""); };
+            this.preEl.log   = function(msg) { this.append("[" + Date() + "] <em>" + msg + "</em>\n"); };
+            $("<button/>").
+                appendTo(rootEl).text("Clear").
+                bind("click", function(){ that.preEl.clear(); });
+
             return this;
         },
         log: function (msg) {
-            this.preEl.append("[" + Date() + "] <em>" + msg + "</em>\n");
+            this.preEl.log(msg);
             console.log(msg);
             return this;
         }
@@ -18,55 +36,41 @@ if (!window.console) {
 
     log.init("#log").log("Starting...");
 
-    var selectList = {
-        init: function(rootEl, prefix, outEl, idEl) {
-            var that = this;
+    var selectListProto = {
+        init: function(params) {
+            var dag,that = this;
 
-            this.dag  = MBO.BREADCRUMB.DAG.getDag(rootEl, prefix);
-            log.log(this.dag);
+            dag  = MBO.BREADCRUMB.DAG.getDag(params.optionElements, params.prefix);
+            this.list = MBO.BREADCRUMB.LIST.create(dag, function() { that.onSelect.apply(that, arguments); });
 
-            this.list = MBO.BREADCRUMB.LIST.create(this.dag, function() { that.onSelect.apply(that, arguments); });
-            log.log(this.list);
-
-            this.outEl = outEl;
-            this.idEl = idEl;
+            this.outEl = params.outputHolder;
+            this.outEl.bind("change", function(ev) {
+                $(ev.target).data("sublist").select(ev.target.value);
+                that.regenerateSelects();
+            });
+            this.idEl = params.idHolder;
             this.regenerateSelects();
         },
         onSelect: function(target, selected) {
-            log.log("selected").log(arguments);
             this.idEl.val(selected);
         },
         clear: function() {
-            log.log("Clearing outEl");
             this.outEl.html("");
             return this;
         },
         generateSelects: function() {
-            var i,j,that = this;
+            var sublist,select,i,id,option,that = this;
             log.log("Generaging selects...").log(this.list);
-            for (i = this.list; i; i = i.selected) {
-                if (i.childIds && i.childIds.length > 0) {
-                    var select = $("<select/>");
-                    log.log("Generating &lt;select/&gt; for sublist").log(i);
-
-                    log.log("Generaging options for select");
+            for (sublist = this.list; sublist; sublist = sublist.selected) {
+                if (sublist.childIds.length) {
+                    select = $("<select/>").appendTo(this.outEl).data("sublist", sublist);
                     $("<option/>").appendTo(select);
-                    for (j = 0; j < i.childIds.length; j++) {
-                        var id = i.childIds[j];
-                        //log.log("    creating &lt;option/&gt; for id="+id);
-                        var option = $("<option/>").appendTo(select).val(id).text(i.dag[id].item.text);
-                        if (i.selected && i.selected.value === id) {
-                            option.attr("selected", "selected");
-                        }
+                    for (i = 0; i < sublist.childIds.length; i++) {
+                        id = sublist.childIds[i];
+                        $("<option/>").appendTo(select).val(id).text(sublist.dag[id].item.text);
                     }
+                    select.val(sublist.selected && sublist.selected.value);
                 }
-                select.appendTo(this.outEl);
-                select.bind("change", (function(s,sublist) {
-                    return function() {
-                        sublist.select(s.val());
-                        that.regenerateSelects();
-                    }
-                })(select,i));
             }
             log.log("Done generating selects");
             return this;
@@ -77,8 +81,13 @@ if (!window.console) {
     };
 
     //selectList.init($("select").find("option"), "-", $("#out"));
-    ss = Object.create(selectList);
-    ss.init($("select").find("option"), "-", $("#out"), $("#id"));
+    ss = Object.create(selectListProto);
+    ss.init({
+        optionElements: $("select").find("option"),
+        prefix: "-",
+        outputHolder: $("#out"),
+        idHolder: $("#id")
+    });
 
     $(function() {
     });
