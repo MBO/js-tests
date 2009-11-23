@@ -48,16 +48,14 @@ if (!window.console) {
             });
             this.idEl = params.idHolder;
             this.regenerateSelects();
+            return this;
         },
         onSelect: function(target, selected) {
             this.idEl.val(selected);
         },
-        clear: function() {
+        regenerateSelects: function() {
+            var sublist,select,i,id,option;
             this.outEl.html("");
-            return this;
-        },
-        generateSelects: function() {
-            var sublist,select,i,id,option,that = this;
             for (sublist = this.list; sublist; sublist = sublist.selected) {
                 if (sublist.childIds.length) {
                     select = $("<select/>").appendTo(this.outEl).data("sublist", sublist);
@@ -71,9 +69,6 @@ if (!window.console) {
             }
             select.focus(); // get focus for last generated select (at last there should be one select, with root options)
             return this;
-        },
-        regenerateSelects: function() {
-            return this.clear().generateSelects();
         }
     };
 
