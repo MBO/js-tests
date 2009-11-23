@@ -38,11 +38,9 @@ if (!window.console) {
 
     var selectListProto = {
         init: function(params) {
-            var dag,that = this;
+            var that = this;
 
-            dag  = MBO.BREADCRUMB.DAG.getDag(params.optionElements, params.prefix);
-            this.list = MBO.BREADCRUMB.LIST.create(dag, function() { that.onSelect.apply(that, arguments); });
-
+            this.list = MBO.BREADCRUMB.getList(params.rootElement, params.prefix, function() { that.onSelect.apply(that, arguments); });
             this.outEl = params.outputHolder;
             this.outEl.bind("change", function(ev) {
                 $(ev.target).data("sublist").select(ev.target.value);
@@ -79,10 +77,9 @@ if (!window.console) {
         }
     };
 
-    //selectList.init($("select").find("option"), "-", $("#out"));
-    ss = Object.create(selectListProto);
+    ss = $.extend({}, selectListProto);
     ss.init({
-        optionElements: $("select").find("option"),
+        optionElements: $("select"),
         prefix: "-",
         outputHolder: $("#out"),
         idHolder: $("#id")
