@@ -34,7 +34,7 @@ if (!window.console) {
         }
     };
 
-    log.init("#log").log("Starting...");
+    //log.init("#log").log("Starting...");
 
     var selectListProto = {
         init: function(params) {
@@ -60,7 +60,6 @@ if (!window.console) {
         },
         generateSelects: function() {
             var sublist,select,i,id,option,that = this;
-            log.log("Generaging selects...").log(this.list);
             for (sublist = this.list; sublist; sublist = sublist.selected) {
                 if (sublist.childIds.length) {
                     select = $("<select/>").appendTo(this.outEl).data("sublist", sublist);
@@ -72,7 +71,7 @@ if (!window.console) {
                     select.val(sublist.selected && sublist.selected.value);
                 }
             }
-            log.log("Done generating selects");
+            select.focus(); // get focus for last generated select (at last there should be one select, with root options)
             return this;
         },
         regenerateSelects: function() {
